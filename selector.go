@@ -1,4 +1,5 @@
-/**
+/*
+*
 Selector is a handy mechanism to identify a specific UI object in the current window.
 https://github.com/openatx/uiautomator2#selector
 */

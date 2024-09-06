@@ -1,4 +1,5 @@
-/**
+/*
+*
 https://github.com/openatx/uiautomator2#input-method
 */
 package uiautomator
@@ -33,7 +34,7 @@ func (ua *UIAutomator) waitFastinputIME() error {
 			return fmt.Errorf("FastInputIME started failed")
 		}
 
-		output, err := ua.Shell([]string{"dumpsys", "input_method"}, 10)
+		output, err := ua.Shell("dumpsys input_method")
 		if err != nil {
 			return err
 		}
@@ -60,14 +61,14 @@ func (ua *UIAutomator) waitFastinputIME() error {
 
 func (ua *UIAutomator) SetFastinputIME(enable bool) error {
 	if enable {
-		if _, err := ua.Shell([]string{"ime", "enable", _FASTIME}, 5); err != nil {
+		if _, err := ua.Shell(fmt.Sprintf("ime enable %s", _FASTIME)); err != nil {
 			return err
 		}
-		if _, err := ua.Shell([]string{"ime", "set", _FASTIME}, 5); err != nil {
+		if _, err := ua.Shell(fmt.Sprintf("ime set %s", _FASTIME)); err != nil {
 			return err
 		}
 	} else {
-		if _, err := ua.Shell([]string{"ime", "disable", _FASTIME}, 5); err != nil {
+		if _, err := ua.Shell(fmt.Sprintf("ime disable %s", _FASTIME)); err != nil {
 			return err
 		}
 	}
@@ -92,7 +93,7 @@ func (ua *UIAutomator) SendAction(code interface{}) error {
 		return fmt.Errorf("Unknow code: %q", code)
 	}
 
-	if _, err := ua.Shell([]string{"am", "broadcast", "-a", "ADB_EDITOR_CODE", "--ei", "code", strconv.Itoa(code.(int))}, 5); err != nil {
+	if _, err := ua.Shell(fmt.Sprintf("am broadcast -a ADB_EDITOR_CODE --ei code %v", strconv.Itoa(code.(int)))); err != nil {
 		return err
 	}
 	return nil

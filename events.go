@@ -114,10 +114,7 @@ func (ua *UIAutomator) Unlock() error {
 				done <- true
 			},
 		)
-		ua.Shell(
-			[]string{"am start -W -n com.github.uiautomator/.IdentifyActivity -e theme black"},
-			0,
-		)
+		ua.Shell("am start -W -n com.github.uiautomator/.IdentifyActivity -e theme black")
 	}()
 
 	<-done

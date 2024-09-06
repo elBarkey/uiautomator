@@ -1,4 +1,5 @@
-/**
+/*
+*
 Device api related
 https://github.com/openatx/uiautomator2#retrieve-the-device-info
 */
@@ -79,12 +80,17 @@ func (ua *UIAutomator) GetWindowSize() (*WindowSize, error) {
 Get current app info
 */
 func (ua *UIAutomator) GetCurrentApp() (info *AppInfo, err error) {
-	output, err := ua.Shell([]string{"dumpsys", "window", "windows"}, 10)
+	output, err := ua.Shell("dumpsys activity activities | grep ResumedActivity")
 	if err != nil {
 		return
 	}
 
-	r := regexp.MustCompile(`mCurrentFocus=Window{.*\s+(?P<package>[^\s]+)/(?P<activity>[^\s]+)\}`)
+	/*
+		topResumedActivity=ActivityRecord{f3a7aa9 u0 com.miui.home/.launcher.Launcher} t2}
+		  ResumedActivity: ActivityRecord{f3a7aa9 u0 com.miui.home/.launcher.Launcher} t2}
+	*/
+	r := regexp.MustCompile(`ActivityRecord{.*\s+(?P<package>[^\s]+)/(?P<activity>[^\s]+)\}`)
+	// r := regexp.MustCompile(`mCurrentFocus=Window{.*\s+(?P<package>[^\s]+)/(?P<activity>[^\s]+)\}`)
 	matched := r.FindStringSubmatch(output)
 	res := make(map[string]string)
 
