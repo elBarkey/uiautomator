@@ -5,12 +5,18 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/electricbubble/gadb"
 )
 
 const (
@@ -38,6 +44,7 @@ type (
 		http       *http.Client
 		retryTimes int
 		size       *WindowSize
+		dev        *gadb.Device
 	}
 
 	Config struct {
@@ -53,7 +60,7 @@ type (
 	}
 )
 
-func New(config *Config) *UIAutomator {
+func New(config *Config, dev *gadb.Device) *UIAutomator {
 	if config == nil {
 		panic("New: config can not be null")
 	}
@@ -99,13 +106,43 @@ func New(config *Config) *UIAutomator {
 		config.WaitForDisappearMaxRetry = WAIT_FOR_DISAPPEAR_MAX_RETRY
 	}
 
-	return &UIAutomator{
+	ua := UIAutomator{
+		dev:    dev,
 		config: config,
 		http: &http.Client{
 			Timeout: time.Duration(config.Timeout) * time.Second,
 		},
 		retryTimes: 0,
 	}
+
+	devInfo, err := ua.GetDeviceInfo()
+	if err != nil {
+		shellOutput, err2 := dev.RunShellCommand("ls /data/local/tmp")
+		if err2 != nil {
+			panic(err2)
+		}
+		if !strings.Contains(shellOutput, "atx-agent") {
+			err = errors.New("atx-agent not installed")
+			panic(err)
+		}
+		shellOutput, err2 = dev.RunShellCommand("/data/local/tmp/atx-agent server --stop")
+		if err2 != nil {
+			panic(err2)
+		}
+		time.Sleep(2 * time.Second)
+		shellOutput, err2 = dev.RunShellCommand("/data/local/tmp/atx-agent server -d")
+		if err2 != nil {
+			panic(err2)
+		}
+		log.Println(shellOutput)
+		err2 = dev.Forward(config.Port, 9008, false)
+		if err2 != nil {
+			panic(err2)
+		}
+	}
+	log.Println(devInfo)
+
+	return &ua
 }
 
 func (ua UIAutomator) GetConfig() *Config {
@@ -147,10 +184,11 @@ func (ua *UIAutomator) caniRetry(err error) bool {
 		// Retry time should be less than max auto retry times
 		ua.retryTimes < ua.config.AutoRetry
 
+	log.Println("shouldRetry: " + strconv.FormatBool(shouldRetry))
 	if shouldRetry {
 		switch err := err.(type) {
 		case net.Error:
-			if err.Timeout() {
+			if err.Timeout() || strings.Contains(err.Error(), "EOF") {
 				return true
 			}
 
